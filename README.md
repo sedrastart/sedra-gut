@@ -69,9 +69,14 @@ sedra_gut/
 ├── instance/
 │   └── sedra_gut.db← Banco de dados SQLite (criado automaticamente)
 ├── templates/
+│   ├── base.html
 │   ├── login.html
 │   ├── cadastro.html
-│   └── dashboard.html
+│   ├── dashboard.html
+│   ├── configuracoes.html
+│   ├── config_usuarios.html
+│   ├── config_categorias.html
+│   └── config_aparencia.html
 └── static/
     ├── style.css
     └── script.js
