@@ -13,7 +13,7 @@ from flask_login import (LoginManager, login_user, logout_user,
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, date
-from database import db, Usuario, Tarefa, Atividade, Categoria, Configuracao
+from database import db, Usuario, Tarefa, Atividade, Categoria, Configuracao, HistoricoTarefa
 from functools import wraps
 
 # ── Configuração ───────────────────────────────────────────────
@@ -55,6 +55,16 @@ def registrar_atividade(descricao):
     )
     db.session.add(a)
     db.session.commit()
+
+
+def registrar_historico(tarefa_id, descricao):
+    h = HistoricoTarefa(
+        tarefa_id=tarefa_id,
+        usuario_id=current_user.id,
+        usuario_nome=current_user.nome,
+        descricao=descricao
+    )
+    db.session.add(h)
 
 
 def extensao_permitida(filename):
@@ -250,6 +260,8 @@ def nova_tarefa():
     )
     db.session.add(tarefa)
     db.session.commit()
+    registrar_historico(tarefa.id, f'Tarefa criada com GUT {g}×{u}×{t} = {g*u*t}')
+    db.session.commit()
     registrar_atividade(f'Tarefa criada: "{titulo}" (GUT: {g*u*t})')
     flash(f'Tarefa "{titulo}" criada!', "success")
     return redirect(url_for("dashboard"))
@@ -303,12 +315,19 @@ def editar_tarefa(id):
 
         tarefa.prioridade    = tarefa.gravidade * tarefa.urgencia * tarefa.tendencia
         tarefa.atualizado_em = datetime.utcnow()
+        partes = [f'Status: {novo_status}'] if novo_status != tarefa.status else []
+        partes.append(f'GUT: {tarefa.gravidade}×{tarefa.urgencia}×{tarefa.tendencia} = {tarefa.prioridade}')
+        registrar_historico(tarefa.id, 'Tarefa editada — ' + ' | '.join(partes))
         db.session.commit()
         registrar_atividade(f'Tarefa editada: "{tarefa.titulo}"')
         flash("Tarefa atualizada!", "success")
         return redirect(url_for("dashboard"))
 
-    # GET — retorna JSON para o modal de edição
+    # GET — retorna JSON para o modal de edição (inclui histórico)
+    historico = (HistoricoTarefa.query
+                 .filter_by(tarefa_id=tarefa.id)
+                 .order_by(HistoricoTarefa.criado_em.desc())
+                 .all())
     return jsonify({
         "id": tarefa.id, "titulo": tarefa.titulo,
         "descricao": tarefa.descricao, "responsavel": tarefa.responsavel,
@@ -316,7 +335,15 @@ def editar_tarefa(id):
         "urgencia": tarefa.urgencia, "tendencia": tarefa.tendencia,
         "status": tarefa.status,
         "prazo": tarefa.prazo.isoformat() if tarefa.prazo else "",
-        "criado_por_id": tarefa.criado_por_id
+        "criado_por_id": tarefa.criado_por_id,
+        "historico": [
+            {
+                "descricao": h.descricao,
+                "usuario": h.usuario_nome,
+                "data": h.criado_em.strftime("%d/%m/%Y %H:%M")
+            }
+            for h in historico
+        ]
     })
 
 
@@ -348,6 +375,7 @@ def concluir_tarefa(id):
     tarefa = db.get_or_404(Tarefa, id)
     tarefa.status = "Concluída"
     tarefa.atualizado_em = datetime.utcnow()
+    registrar_historico(tarefa.id, 'Status alterado para: Concluída')
     db.session.commit()
     registrar_atividade(f'Tarefa concluída: "{tarefa.titulo}"')
     flash(f'Tarefa "{tarefa.titulo}" concluída!', "success")
@@ -361,6 +389,7 @@ def iniciar_tarefa(id):
     tarefa = db.get_or_404(Tarefa, id)
     tarefa.status = "Em andamento"
     tarefa.atualizado_em = datetime.utcnow()
+    registrar_historico(tarefa.id, 'Status alterado para: Em andamento')
     db.session.commit()
     registrar_atividade(f'Tarefa iniciada: "{tarefa.titulo}"')
     flash(f'Tarefa "{tarefa.titulo}" em andamento!', "success")

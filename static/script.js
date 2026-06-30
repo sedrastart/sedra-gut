@@ -45,6 +45,28 @@ async function abrirModalEditar(id) {
             selecionarNota(container, campo, t[campo]);
         });
         atualizarPreview("editar");
+
+        // Resetar abas para "Editar" ao abrir
+        document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.modal-tab')[0].classList.add('active');
+        document.getElementById('aba-editar').style.display = '';
+        document.getElementById('aba-historico').style.display = 'none';
+
+        // Preencher histórico
+        const lista = document.getElementById('historico-lista');
+        if (t.historico && t.historico.length > 0) {
+            lista.innerHTML = t.historico.map(h => `
+                <div class="historico-item">
+                    <div class="historico-avatar">${h.usuario.substring(0,2).toUpperCase()}</div>
+                    <div>
+                        <div class="historico-desc">${h.descricao}</div>
+                        <div class="historico-meta">${h.usuario} · ${h.data}</div>
+                    </div>
+                </div>`).join('');
+        } else {
+            lista.innerHTML = '<div class="historico-vazio">Nenhuma movimentação registrada ainda.</div>';
+        }
+
         abrirModal("modal-editar");
     } catch(e) {
         alert("Erro ao carregar tarefa."); console.error(e);

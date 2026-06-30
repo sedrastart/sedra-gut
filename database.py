@@ -166,6 +166,21 @@ class Tarefa(db.Model):
         return f"<Tarefa '{self.titulo}' GUT={self.prioridade}>"
 
 
+class HistoricoTarefa(db.Model):
+    """Registro de cada modificação feita em uma tarefa."""
+    __tablename__ = "historico_tarefas"
+
+    id           = db.Column(db.Integer, primary_key=True)
+    tarefa_id    = db.Column(db.Integer, db.ForeignKey("tarefas.id", ondelete="CASCADE"), nullable=False)
+    usuario_id   = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=True)
+    usuario_nome = db.Column(db.String(100), default="")
+    descricao    = db.Column(db.String(400), nullable=False)
+    criado_em    = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<Historico tarefa={self.tarefa_id} '{self.descricao[:30]}'>"
+
+
 class Atividade(db.Model):
     """
     Log de tudo que acontece no sistema — exibido na barra lateral.

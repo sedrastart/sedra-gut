@@ -250,6 +250,16 @@
         <h3>✏️ Editar Tarefa</h3>
         <button class="modal-close" onclick="fecharModal('modal-editar')">✕</button>
     </div>
+    <div class="modal-tabs">
+        <button type="button" class="modal-tab active" onclick="trocarAba('aba-editar', this)">Editar</button>
+        <button type="button" class="modal-tab" onclick="trocarAba('aba-historico', this)">📋 Histórico</button>
+    </div>
+
+    <div id="aba-historico" style="display:none">
+        <div id="historico-lista" class="historico-lista"></div>
+    </div>
+
+    <div id="aba-editar">
     <form method="POST" id="form-editar" action="">
         <div class="form-row">
             <div class="form-group flex-2">
@@ -327,6 +337,7 @@
             <button type="submit" class="btn btn-primary">Salvar Alterações</button>
         </div>
     </form>
+    </div>{# fim aba-editar #}
 </div>
 </div>
 {% endif %}
@@ -342,6 +353,13 @@ document.querySelectorAll('.prazo').forEach(el => {
         // Comparação visual já feita via class no Jinja
     }
 });
+
+function trocarAba(abaId, btn) {
+    document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('aba-editar').style.display = abaId === 'aba-editar' ? '' : 'none';
+    document.getElementById('aba-historico').style.display = abaId === 'aba-historico' ? '' : 'none';
+}
 
 async function solicitarCategoria() {
     const nome = document.getElementById('nova-cat-nome').value.trim();
