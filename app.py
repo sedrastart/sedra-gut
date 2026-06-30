@@ -108,14 +108,20 @@ def injetar_globais():
     nome_empresa = Configuracao.get("nome_empresa", "SEDRA GUT")
     # Categorias pendentes (para badge no ícone de config)
     pendentes_cat = 0
-    if current_user.is_authenticated and current_user.eh_admin:
-        pendentes_cat = Categoria.query.filter_by(ativa=False).count()
+    atividades = []
+    if current_user.is_authenticated:
+        if current_user.eh_admin:
+            pendentes_cat = Categoria.query.filter_by(ativa=False).count()
+        atividades = (Atividade.query
+                      .order_by(Atividade.criado_em.desc())
+                      .limit(20).all())
     from datetime import date
     return dict(
         logo_filename=logo,
         nome_empresa=nome_empresa,
         pendentes_cat=pendentes_cat,
-        hoje=date.today()
+        hoje=date.today(),
+        atividades=atividades
     )
 
 

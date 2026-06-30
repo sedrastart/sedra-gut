@@ -3,6 +3,10 @@
 {% block page_title %}⚙️ Configurações{% endblock %}
 {% block page_sub %}Gerencie usuários, categorias e aparência do sistema{% endblock %}
 
+{% block header_actions %}
+<a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Voltar ao Dashboard</a>
+{% endblock %}
+
 {% block conteudo %}
 <div class="config-grid">
 
