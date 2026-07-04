@@ -212,6 +212,28 @@ def logout():
     flash("Você saiu do sistema.", "info")
     return redirect(url_for("login"))
 
+
+@app.route("/perfil/senha", methods=["POST"])
+@login_required
+def alterar_senha():
+    senha_atual    = request.form.get("senha_atual", "")
+    nova_senha     = request.form.get("nova_senha", "")
+    confirma_senha = request.form.get("confirma_senha", "")
+
+    if not check_password_hash(current_user.senha_hash, senha_atual):
+        flash("Senha atual incorreta.", "danger")
+    elif len(nova_senha) < 6:
+        flash("A nova senha deve ter pelo menos 6 caracteres.", "warning")
+    elif nova_senha != confirma_senha:
+        flash("As senhas não coincidem.", "danger")
+    else:
+        current_user.senha_hash = generate_password_hash(nova_senha)
+        db.session.commit()
+        registrar_atividade("Senha alterada")
+        flash("Senha alterada com sucesso!", "success")
+
+    return redirect(request.referrer or url_for("dashboard"))
+
 # ══════════════════════════════════════════════════════════════
 #  ROTAS: Dashboard e Tarefas
 # ══════════════════════════════════════════════════════════════
