@@ -66,7 +66,7 @@ sedra_gut/
 ├── app.py          ← Servidor principal (lógica das páginas)
 ├── database.py     ← Camada de dados (Google Sheets ou memória)
 ├── requirements.txt← Dependências Python
-├── vercel.json     ← Configuração de deploy no Vercel
+├── render.yaml     ← Configuração de deploy no Render
 ├── templates/
 │   ├── base.html
 │   ├── login.html
@@ -83,7 +83,7 @@ sedra_gut/
 
 ---
 
-## ☁️ Deploy no Vercel + Google Sheets como banco de dados
+## ☁️ Deploy no Render + Google Sheets como banco de dados
 
 O banco de dados desta versão é uma planilha do Google Sheets (via API), lida/gravada
 através do módulo `database.py`. Se as variáveis de ambiente do Google não estiverem
@@ -102,8 +102,13 @@ localmente sem depender do Google, e é o que os testes automatizados/CI usam).
 3. Compartilhe a planilha com o e-mail da service account (campo `client_email` dentro do JSON baixado), com permissão de **Editor**
 4. As abas (usuários, tarefas, categorias, etc.) e cabeçalhos são criados automaticamente na primeira execução
 
-### 3. Configurar variáveis de ambiente no Vercel
-No painel do projeto no Vercel ("Settings" → "Environment Variables"), adicione:
+### 3. Importar o repositório no Render
+No painel do Render: "New" → "Web Service" → conecte o repositório `sedra-gut`.
+O arquivo `render.yaml` já configura o build (`pip install -r requirements.txt`) e o
+start command (`gunicorn app:app`) automaticamente — selecione o plano **Free**.
+
+### 4. Configurar variáveis de ambiente no Render
+No painel do serviço ("Environment"), adicione:
 
 | Variável | Valor |
 |---|---|
@@ -111,16 +116,11 @@ No painel do projeto no Vercel ("Settings" → "Environment Variables"), adicion
 | `GOOGLE_SHEET_ID` | o ID copiado da URL da planilha |
 | `GOOGLE_CREDENTIALS_JSON` | o conteúdo inteiro do arquivo JSON da service account, em uma linha só |
 
-### 4. Importar o repositório no Vercel
-No painel do Vercel: "Add New..." → "Project" → selecione o repositório `sedra-gut` → Deploy.
-O arquivo `vercel.json` já configura o build do Python/Flask automaticamente.
-
-### ⚠️ Limitação conhecida: upload de logo
-A tela de Aparência permite enviar uma logo da empresa. No Vercel, o sistema de arquivos
-é somente leitura fora da pasta `/tmp`, e `/tmp` **não persiste** entre execuções (a cada
-"cold start" o arquivo enviado é perdido). O upload funciona sem erro, mas a logo pode
-sumir depois de um tempo. Para resolver de forma definitiva seria necessário um serviço
-de armazenamento externo (ex: Vercel Blob, Cloudinary, S3) — fora do escopo desta migração.
+### ⚠️ Limitação conhecida: plano gratuito "dorme"
+No plano Free do Render, o serviço entra em modo de espera após ~15 minutos sem acesso
+e demora cerca de 30–50 segundos para responder na próxima visita (ele "acorda"
+automaticamente, sem nenhuma ação manual necessária). O upload de logo funciona
+normalmente e persiste enquanto a instância estiver ativa.
 
 ---
 

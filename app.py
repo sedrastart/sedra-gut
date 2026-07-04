@@ -22,13 +22,9 @@ app.secret_key = os.environ.get("SECRET_KEY", "sedra_gut_chave_secreta_2026")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Dados ficam no Google Sheets (ver database.py). Uploads: no Vercel o
-# sistema de arquivos só permite escrita em /tmp, e /tmp não persiste
-# entre execuções (a logo enviada some depois de um tempo nesse host).
-if os.environ.get("VERCEL"):
-    app.config["UPLOAD_FOLDER"] = "/tmp/uploads"
-else:
-    app.config["UPLOAD_FOLDER"] = os.path.join(BASE_DIR, "static", "uploads")
+# Dados ficam no Google Sheets (ver database.py). Uploads continuam em
+# disco local — no Render isso persiste enquanto a instância está ativa.
+app.config["UPLOAD_FOLDER"] = os.path.join(BASE_DIR, "static", "uploads")
 app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024  # 2 MB máximo para logo
 
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
