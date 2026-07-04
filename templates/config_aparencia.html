@@ -22,7 +22,7 @@
             <label>Logo da Empresa</label>
             {% if logo_filename %}
             <div class="logo-preview">
-                <img src="{{ url_for('static', filename='uploads/' + logo_filename) }}"
+                <img src="{{ url_for('uploaded_file', filename=logo_filename) }}"
                      alt="Logo atual" class="logo-preview-img">
                 <span class="hint">Logo atual — envie um novo para substituir</span>
             </div>

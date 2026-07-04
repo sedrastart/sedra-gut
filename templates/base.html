@@ -14,7 +14,7 @@
 
         <div class="sidebar-logo">
             {% if logo_filename %}
-                <img src="{{ url_for('static', filename='uploads/' + logo_filename) }}"
+                <img src="{{ url_for('uploaded_file', filename=logo_filename) }}"
                      alt="Logo" class="sidebar-logo-img">
             {% else %}
                 <span class="logo-icon">⊕</span>

@@ -64,10 +64,9 @@ Para que outros computadores na mesma rede acessem o sistema:
 ```
 sedra_gut/
 ├── app.py          ← Servidor principal (lógica das páginas)
-├── database.py     ← Estrutura do banco de dados
+├── database.py     ← Camada de dados (Google Sheets ou memória)
 ├── requirements.txt← Dependências Python
-├── instance/
-│   └── sedra_gut.db← Banco de dados SQLite (criado automaticamente)
+├── vercel.json     ← Configuração de deploy no Vercel
 ├── templates/
 │   ├── base.html
 │   ├── login.html
@@ -81,6 +80,47 @@ sedra_gut/
     ├── style.css
     └── script.js
 ```
+
+---
+
+## ☁️ Deploy no Vercel + Google Sheets como banco de dados
+
+O banco de dados desta versão é uma planilha do Google Sheets (via API), lida/gravada
+através do módulo `database.py`. Se as variáveis de ambiente do Google não estiverem
+configuradas, o sistema usa automaticamente um banco em memória (útil para rodar
+localmente sem depender do Google, e é o que os testes automatizados/CI usam).
+
+### 1. Criar a Service Account no Google Cloud
+1. Acesse o [Google Cloud Console](https://console.cloud.google.com/) e crie um projeto
+2. Ative a **Google Sheets API** (menu "APIs e Serviços" → "Ativar APIs e Serviços")
+3. Crie uma **Service Account** ("Credenciais" → "Criar credenciais" → "Conta de serviço")
+4. Na service account criada, gere uma **chave JSON** (aba "Chaves" → "Adicionar chave" → JSON) e baixe o arquivo
+
+### 2. Criar e compartilhar a planilha
+1. Crie uma planilha nova em branco no Google Sheets
+2. Copie o **ID da planilha** (está na URL: `https://docs.google.com/spreadsheets/d/ESTE_É_O_ID/edit`)
+3. Compartilhe a planilha com o e-mail da service account (campo `client_email` dentro do JSON baixado), com permissão de **Editor**
+4. As abas (usuários, tarefas, categorias, etc.) e cabeçalhos são criados automaticamente na primeira execução
+
+### 3. Configurar variáveis de ambiente no Vercel
+No painel do projeto no Vercel ("Settings" → "Environment Variables"), adicione:
+
+| Variável | Valor |
+|---|---|
+| `SECRET_KEY` | qualquer texto secreto aleatório |
+| `GOOGLE_SHEET_ID` | o ID copiado da URL da planilha |
+| `GOOGLE_CREDENTIALS_JSON` | o conteúdo inteiro do arquivo JSON da service account, em uma linha só |
+
+### 4. Importar o repositório no Vercel
+No painel do Vercel: "Add New..." → "Project" → selecione o repositório `sedra-gut` → Deploy.
+O arquivo `vercel.json` já configura o build do Python/Flask automaticamente.
+
+### ⚠️ Limitação conhecida: upload de logo
+A tela de Aparência permite enviar uma logo da empresa. No Vercel, o sistema de arquivos
+é somente leitura fora da pasta `/tmp`, e `/tmp` **não persiste** entre execuções (a cada
+"cold start" o arquivo enviado é perdido). O upload funciona sem erro, mas a logo pode
+sumir depois de um tempo. Para resolver de forma definitiva seria necessário um serviço
+de armazenamento externo (ex: Vercel Blob, Cloudinary, S3) — fora do escopo desta migração.
 
 ---
 

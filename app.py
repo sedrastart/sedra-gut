@@ -7,7 +7,7 @@
 
 import os
 from flask import (Flask, render_template, request, redirect,
-                   url_for, flash, jsonify)
+                   url_for, flash, jsonify, send_from_directory)
 from flask_login import (LoginManager, login_user, logout_user,
                          login_required, current_user)
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -22,18 +22,15 @@ app.secret_key = os.environ.get("SECRET_KEY", "sedra_gut_chave_secreta_2026")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# PostgreSQL na nuvem (Railway define DATABASE_URL), SQLite localmente
-_db_url = os.environ.get("DATABASE_URL", "")
-if _db_url.startswith("postgres://"):
-    _db_url = _db_url.replace("postgres://", "postgresql://", 1)
-app.config["SQLALCHEMY_DATABASE_URI"] = (
-    _db_url or "sqlite:///" + os.path.join(BASE_DIR, "instance", "sedra_gut.db")
-)
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["UPLOAD_FOLDER"] = os.path.join(BASE_DIR, "static", "uploads")
+# Dados ficam no Google Sheets (ver database.py). Uploads: no Vercel o
+# sistema de arquivos só permite escrita em /tmp, e /tmp não persiste
+# entre execuções (a logo enviada some depois de um tempo nesse host).
+if os.environ.get("VERCEL"):
+    app.config["UPLOAD_FOLDER"] = "/tmp/uploads"
+else:
+    app.config["UPLOAD_FOLDER"] = os.path.join(BASE_DIR, "static", "uploads")
 app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024  # 2 MB máximo para logo
 
-os.makedirs(os.path.join(BASE_DIR, "instance"), exist_ok=True)
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 db.init_app(app)
@@ -75,6 +72,12 @@ def registrar_historico(tarefa_id, descricao):
 def extensao_permitida(filename):
     return ("." in filename and
             filename.rsplit(".", 1)[1].lower() in EXTENSOES_PERMITIDAS)
+
+
+@app.route("/uploads/<path:filename>")
+def uploaded_file(filename):
+    """Serve arquivos de UPLOAD_FOLDER (pode ser static/uploads ou /tmp/uploads no Vercel)."""
+    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
 
 # ── Decoradores de permissão ───────────────────────────────────
