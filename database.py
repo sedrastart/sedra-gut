@@ -356,8 +356,18 @@ def _get_spreadsheet():
 
 
 class SheetsBackend:
+    """
+    Cacheia as linhas de cada aba em memória de processo (self._data_cache) para
+    não estourar a cota de leituras da API do Sheets (60/min por usuário) — cada
+    página do app faz várias consultas, e sem cache cada uma seria uma chamada
+    de rede. O cache de uma aba só é invalidado quando o próprio app escreve
+    nela (insert/update/delete); edições feitas direto na planilha por uma
+    pessoa não aparecem até a próxima escrita do app ou reinício do processo.
+    """
+
     def __init__(self):
         self._ws_cache = {}
+        self._data_cache = {}
 
     def _worksheet(self, model):
         if model.__tablename__ in self._ws_cache:
@@ -380,9 +390,15 @@ class SheetsBackend:
         return ws
 
     def _data_rows(self, model):
-        ws = self._worksheet(model)
-        values = ws.get_all_values()
-        return values[1:] if len(values) > 1 else []
+        name = model.__tablename__
+        if name not in self._data_cache:
+            ws = self._worksheet(model)
+            values = ws.get_all_values()
+            self._data_cache[name] = values[1:] if len(values) > 1 else []
+        return self._data_cache[name]
+
+    def _invalidate(self, model):
+        self._data_cache.pop(model.__tablename__, None)
 
     def _to_obj(self, model, row):
         headers = ["id"] + list(model.__fields__.keys())
@@ -422,23 +438,26 @@ class SheetsBackend:
         ]
         object.__setattr__(obj, "id", (max(existing_ids) if existing_ids else 0) + 1)
         ws.append_row(self._serialize_row(obj), value_input_option="RAW")
+        self._invalidate(model)
 
     def update(self, obj):
         model = type(obj)
         ws = self._worksheet(model)
-        values = ws.get_all_values()
-        for idx, row in enumerate(values[1:], start=2):
+        rows = self._data_rows(model)
+        for idx, row in enumerate(rows, start=2):
             if row and str(row[0]).strip() == str(obj.id):
                 ws.update(f"A{idx}", [self._serialize_row(obj)])
+                self._invalidate(model)
                 return
 
     def delete(self, obj):
         model = type(obj)
         ws = self._worksheet(model)
-        values = ws.get_all_values()
-        for idx, row in enumerate(values[1:], start=2):
+        rows = self._data_rows(model)
+        for idx, row in enumerate(rows, start=2):
             if row and str(row[0]).strip() == str(obj.id):
                 ws.delete_rows(idx)
+                self._invalidate(model)
                 return
 
 
